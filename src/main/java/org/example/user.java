@@ -2,20 +2,27 @@ package org.example;
 
 public class user {
     private int id;
+    private String name;
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
 
     public int getId() {
         return id;
-    }
-
-    public int getAge() {
-        return age;
     }
 
     public String getName() {
         return name;
     }
 
-    private String name;
-    private int age;
+    @Override
+    public String toString() {
+        return "[用户ID:" + id + ", 用户名:" + name + "]";
+    }
 
 }
