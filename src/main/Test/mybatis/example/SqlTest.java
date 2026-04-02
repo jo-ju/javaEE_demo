@@ -33,7 +33,6 @@ public class SqlTest {
             for(user u : allUserList2){
                 System.out.println(u);
             }
-
             session.commit();
             session.close();
         }catch(Exception e){

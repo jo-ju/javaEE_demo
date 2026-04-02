@@ -16,6 +16,8 @@
         </environment>
     </environments>
     <mappers>
+                            <!--引入mapper映射文件-->
         <mapper resource="Mapper/mapper.xml"/>
+        <mapper resource="Mapper/mapper_student.xml" />
     </mappers>
 </configuration>
