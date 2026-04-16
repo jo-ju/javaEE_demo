@@ -3,7 +3,7 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="org.mybatis.example.BlogMapper">
-    <select id="get_user_id" resultType="org.example.user">
+    <select id="get_user_info" resultType="org.example.user">
         select * from users where id = #{id}
     </select>
 </mapper>
