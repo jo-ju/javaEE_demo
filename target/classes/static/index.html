@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>人力资源管理系统（参考vhr2.0）</title>
+    <!-- 引入Vue3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- 引入ElementPlus -->
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
+    <!-- 引入Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { height: 100%; }
+        .login-box {
+            width: 400px;
+            margin: 100px auto;
+            padding: 20px;
+            border: 1px solid #e6e6e6;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .main-container {
+            display: flex;
+            height: 100%;
+        }
+        .sidebar {
+            width: 200px;
+            background: #304156;
+            color: #fff;
+            padding: 20px 0;
+        }
+        .sidebar .menu-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .sidebar .menu-item:hover, .sidebar .menu-item.active {
+            background: #1890ff;
+        }
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            background: #f5f7fa;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 10px 20px;
+            background: #fff;
+            border-radius: 4px;
+        }
+        .form-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        .table-card {
+            background: #fff;
+            padding: 20px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <!-- 登录页 -->
+    <div v-if="!isLogin" class="login-box">
+        <h2 style="text-align: center; margin-bottom: 20px;">人力资源管理系统</h2>
+        <el-form :model="loginForm" label-width="80px">
+            <el-form-item label="用户名">
+                <el-input v-model="loginForm.username" placeholder="请输入用户名"></el-input>
+            </el-form-item>
+            <el-form-item label="密码">
+                <el-input v-model="loginForm.password" type="password" placeholder="请输入密码"></el-input>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="primary" @click="handleLogin" style="width: 100%;">登录</el-button>
+            </el-form-item>
+        </el-form>
+        <p style="text-align: center; color: #999;">默认账号：admin / 123456</p>
+    </div>
+
+    <!-- 主页面 -->
+    <div v-else class="main-container">
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <h3 style="text-align: center; margin-bottom: 20px;">HRMS</h3>
+            <div class="menu-item" :class="{active: activeMenu === 'dept'}" @click="activeMenu='dept'">部门管理</div>
+            <div class="menu-item" :class="{active: activeMenu === 'position'}" @click="activeMenu='position'">职位管理</div>
+            <div class="menu-item" :class="{active: activeMenu === 'emp'}" @click="activeMenu='emp'">员工管理</div>
+            <div class="menu-item" :class="{active: activeMenu === 'stat'}" @click="activeMenu='stat'">信息统计</div>
+        </div>
+
+        <!-- 主内容 -->
+        <div class="main-content">
+            <div class="header">
+                <h3>{{ menuTitle }}</h3>
+                <span>欢迎你，{{ loginUser.username }}</span>
+            </div>
+
+            <!-- 部门管理 -->
+            <div v-show="activeMenu === 'dept'">
+                <div class="form-card">
+                    <el-form :model="deptForm" inline>
+                        <el-form-item label="部门名称">
+                            <el-input v-model="deptForm.deptName" placeholder="请输入部门名称"></el-input>
+                        </el-form-item>
+                        <el-form-item label="负责人">
+                            <el-input v-model="deptForm.manager" placeholder="请输入负责人"></el-input>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="primary" @click="addDept">{{ deptForm.id ? '修改' : '新增' }}</el-button>
+                            <el-button @click="resetDeptForm">重置</el-button>
+                        </el-form-item>
+                    </el-form>
+                </div>
+                <div class="table-card">
+                    <el-table :data="deptList" border>
+                        <el-table-column prop="id" label="部门ID" width="100"></el-table-column>
+                        <el-table-column prop="deptName" label="部门名称"></el-table-column>
+                        <el-table-column prop="manager" label="负责人"></el-table-column>
+                        <el-table-column label="操作" width="150">
+                            <template #default="scope">
+                                <el-button size="small" @click="editDept(scope.row)">编辑</el-button>
+                                <el-button size="small" type="danger" @click="deleteDept(scope.row.id)">删除</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </div>
+            </div>
+
+            <!-- 职位管理 -->
+            <div v-show="activeMenu === 'position'">
+                <div class="form-card">
+                    <el-form :model="positionForm" inline>
+                        <el-form-item label="职位名称">
+                            <el-input v-model="positionForm.posName" placeholder="请输入职位名称"></el-input>
+                        </el-form-item>
+                        <el-form-item label="所属部门">
+                            <el-select v-model="positionForm.dept.id" placeholder="请选择部门">
+                                <el-option v-for="dept in deptList" :key="dept.id" :label="dept.deptName" :value="dept.id"></el-option>
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item label="职位描述">
+                            <el-input v-model="positionForm.posDesc" placeholder="请输入职位描述"></el-input>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="primary" @click="addPosition">{{ positionForm.id ? '修改' : '新增' }}</el-button>
+                            <el-button @click="resetPositionForm">重置</el-button>
+                        </el-form-item>
+                    </el-form>
+                </div>
+                <div class="table-card">
+                    <el-table :data="positionList" border>
+                        <el-table-column prop="id" label="职位ID" width="100"></el-table-column>
+                        <el-table-column prop="posName" label="职位名称"></el-table-column>
+                        <el-table-column prop="dept.deptName" label="所属部门"></el-table-column>
+                        <el-table-column prop="posDesc" label="职位描述"></el-table-column>
+                        <el-table-column label="操作" width="150">
+                            <template #default="scope">
+                                <el-button size="small" @click="editPosition(scope.row)">编辑</el-button>
+                                <el-button size="small" type="danger" @click="deletePosition(scope.row.id)">删除</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </div>
+            </div>
+
+            <!-- 员工管理 -->
+            <div v-show="activeMenu === 'emp'">
+                <div class="form-card">
+                    <el-form :model="empForm" inline>
+                        <el-form-item label="工号">
+                            <el-input v-model="empForm.empId" placeholder="请输入工号"></el-input>
+                        </el-form-item>
+                        <el-form-item label="姓名">
+                            <el-input v-model="empForm.empName" placeholder="请输入姓名"></el-input>
+                        </el-form-item>
+                        <el-form-item label="所属部门">
+                            <el-select v-model="empForm.dept.id" placeholder="请选择部门" @change="loadPositionByDept">
+                                <el-option v-for="dept in deptList" :key="dept.id" :label="dept.deptName" :value="dept.id"></el-option>
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item label="所属职位">
+                            <el-select v-model="empForm.position.id" placeholder="请选择职位">
+                                <el-option v-for="pos in filterPositionList" :key="pos.id" :label="pos.posName" :value="pos.id"></el-option>
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item label="入职日期">
+                            <el-date-picker v-model="empForm.entryDate" type="date" placeholder="请选择入职日期"></el-date-picker>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="primary" @click="addEmp">{{ empForm.id ? '修改' : '新增' }}</el-button>
+                            <el-button @click="resetEmpForm">重置</el-button>
+                        </el-form-item>
+                    </el-form>
+                </div>
+                <div class="table-card">
+                    <el-table :data="empList" border>
+                        <el-table-column prop="id" label="员工ID" width="100"></el-table-column>
+                        <el-table-column prop="empId" label="工号"></el-table-column>
+                        <el-table-column prop="empName" label="姓名"></el-table-column>
+                        <el-table-column prop="dept.deptName" label="所属部门"></el-table-column>
+                        <el-table-column prop="position.posName" label="所属职位"></el-table-column>
+                        <el-table-column prop="entryDate" label="入职日期"></el-table-column>
+                        <el-table-column label="操作" width="150">
+                            <template #default="scope">
+                                <el-button size="small" @click="editEmp(scope.row)">编辑</el-button>
+                                <el-button size="small" type="danger" @click="deleteEmp(scope.row.id)">删除</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </div>
+            </div>
+
+            <!-- 信息统计 -->
+            <div v-show="activeMenu === 'stat'">
+                <div class="table-card">
+                    <h3 style="margin-bottom: 20px;">各部门员工数量统计</h3>
+                    <el-table :data="statList" border>
+                        <el-table-column prop="dept_name" label="部门名称"></el-table-column>
+                        <el-table-column prop="emp_count" label="员工数量"></el-table-column>
+                    </el-table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const { createApp, ref, reactive, computed, onMounted } = Vue;
+    const { ElMessage } = ElementPlus;
+
+    createApp({
+        setup() {
+            // 登录相关
+            const isLogin = ref(false);
+            const loginUser = ref({});
+            const loginForm = reactive({ username: '', password: '' });
+
+            // 菜单相关
+            const activeMenu = ref('dept');
+            const menuTitle = computed(() => {
+                const titles = {
+                    dept: '部门管理',
+                    position: '职位管理',
+                    emp: '员工管理',
+                    stat: '信息统计'
+                };
+                return titles[activeMenu.value];
+            });
+
+            // 部门相关
+            const deptList = ref([]);
+            const deptForm = reactive({ id: '', deptName: '', manager: '' });
+
+            // 职位相关
+            const positionList = ref([]);
+            const positionForm = reactive({ id: '', posName: '', posDesc: '', dept: { id: '' } });
+            const filterPositionList = ref([]); // 按部门筛选的职位
+
+            // 员工相关
+            const empList = ref([]);
+            const empForm = reactive({ id: '', empId: '', empName: '', dept: { id: '' }, position: { id: '' }, entryDate: '' });
+
+            // 统计相关
+            const statList = ref([]);
+
+            // 登录
+            const handleLogin = async () => {
+                if (!loginForm.username || !loginForm.password) {
+                    ElMessage.warning('请输入用户名和密码');
+                    return;
+                }
+                try {
+                    const res = await axios.post('/login', loginForm);
+                    if (res.data.code === 200) {
+                        ElMessage.success('登录成功');
+                        isLogin.value = true;
+                        // 加载数据
+                        loadDeptList();
+                        loadPositionList();
+                        loadEmpList();
+                        loadStatList();
+                    } else {
+                        ElMessage.error(res.data.msg);
+                    }
+                } catch (err) {
+                    ElMessage.error('登录失败：' + err.message);
+                }
+            };
+
+            // 加载部门列表
+            const loadDeptList = async () => {
+                const res = await axios.get('/dept/list');
+                deptList.value = res.data;
+            };
+
+            // 新增/修改部门
+            const addDept = async () => {
+                if (!deptForm.deptName) {
+                    ElMessage.warning('请输入部门名称');
+                    return;
+                }
+                if (deptForm.id) {
+                    await axios.put('/dept/update', deptForm);
+                    ElMessage.success('修改成功');
+                } else {
+                    await axios.post('/dept/add', deptForm);
+                    ElMessage.success('新增成功');
+                }
+                resetDeptForm();
+                loadDeptList();
+                loadStatList();
+            };
+
+            const editDept = (row) => {
+                Object.assign(deptForm, row);
+            };
+
+            const deleteDept = async (id) => {
+                await ElMessageBox.confirm('确定删除该部门吗？');
+                await axios.delete(`/dept/delete/${id}`);
+                ElMessage.success('删除成功');
+                loadDeptList();
+                loadEmpList();
+                loadStatList();
+            };
+
+            const resetDeptForm = () => {
+                deptForm.id = '';
+                deptForm.deptName = '';
+                deptForm.manager = '';
+            };
+
+            // 加载职位列表
+            const loadPositionList = async () => {
+                const res = await axios.get('/position/list');
+                positionList.value = res.data;
+            };
+
+            // 新增/修改职位
+            const addPosition = async () => {
+                if (!positionForm.posName) {
+                    ElMessage.warning('请输入职位名称');
+                    return;
+                }
+                if (positionForm.id) {
+                    await axios.put('/position/update', positionForm);
+                    ElMessage.success('修改成功');
+                } else {
+                    await axios.post('/position/add', positionForm);
+                    ElMessage.success('新增成功');
+                }
+                resetPositionForm();
+                loadPositionList();
+            };
+
+            const editPosition = (row) => {
+                Object.assign(positionForm, row);
+            };
+
+            const deletePosition = async (id) => {
+                await ElMessageBox.confirm('确定删除该职位吗？');
+                await axios.delete(`/position/delete/${id}`);
+                ElMessage.success('删除成功');
+                loadPositionList();
+                loadEmpList();
+            };
+
+            const resetPositionForm = () => {
+                positionForm.id = '';
+                positionForm.posName = '';
+                positionForm.posDesc = '';
+                positionForm.dept.id = '';
+            };
+
+            // 按部门筛选职位
+            const loadPositionByDept = () => {
+                if (empForm.dept.id) {
+                    filterPositionList.value = positionList.value.filter(p => p.dept.id === empForm.dept.id);
+                } else {
+                    filterPositionList.value = positionList.value;
+                }
+            };
+
+            // 加载员工列表
+            const loadEmpList = async () => {
+                const res = await axios.get('/employee/list');
+                empList.value = res.data;
+            };
+
+            // 新增/修改员工
+            const addEmp = async () => {
+                if (!empForm.empId || !empForm.empName) {
+                    ElMessage.warning('请输入工号和姓名');
+                    return;
+                }
+                if (empForm.id) {
+                    await axios.put('/employee/update', empForm);
+                    ElMessage.success('修改成功');
+                } else {
+                    await axios.post('/employee/add', empForm);
+                    ElMessage.success('新增成功');
+                }
+                resetEmpForm();
+                loadEmpList();
+                loadStatList();
+            };
+
+            const editEmp = (row) => {
+                Object.assign(empForm, row);
+                loadPositionByDept();
+            };
+
+            const deleteEmp = async (id) => {
+                await ElMessageBox.confirm('确定删除该员工吗？');
+                await axios.delete(`/employee/delete/${id}`);
+                ElMessage.success('删除成功');
+                loadEmpList();
+                loadStatList();
+            };
+
+            const resetEmpForm = () => {
+                empForm.id = '';
+                empForm.empId = '';
+                empForm.empName = '';
+                empForm.dept.id = '';
+                empForm.position.id = '';
+                empForm.entryDate = '';
+                filterPositionList.value = positionList.value;
+            };
+
+            // 加载统计数据
+            const loadStatList = async () => {
+                const res = await axios.get('/employee/countByDept');
+                statList.value = res.data;
+            };
+
+            // 初始化检查登录
+            onMounted(async () => {
+                try {
+                    const res = await axios.get('/login/check');
+                    if (res.data.code === 200) {
+                        isLogin.value = true;
+                        loginUser.value = res.data.user;
+                        loadDeptList();
+                        loadPositionList();
+                        loadEmpList();
+                        loadStatList();
+                    }
+                } catch (err) {
+                    // 未登录，不处理
+                }
+            });
+
+            return {
+                isLogin, loginUser, loginForm, handleLogin,
+                activeMenu, menuTitle,
+                deptList, deptForm, addDept, editDept, deleteDept, resetDeptForm,
+                positionList, positionForm, addPosition, editPosition, deletePosition, resetPositionForm, filterPositionList, loadPositionByDept,
+                empList, empForm, addEmp, editEmp, deleteEmp, resetEmpForm,
+                statList
+            };
+        }
+    }).use(ElementPlus).mount('#app');
+</script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+package org.example.hrms.service.Impl;
+
+import jakarta.annotation.Resource;
+import org.example.hrms.entity.Dept;
+import org.example.hrms.mapper.DeptMapper;
+import org.example.hrms.service.DeptService;
+import org.springframework.stereotype.Service;
+import java.util.List;
+
+@Service
+public class DeptServiceImpl extends DeptService {
+
+    @Resource
+    private DeptMapper deptMapper;
+
+    @Override
+    public List<Dept> findAll() {
+        return deptMapper.findAll();
+    }
+
+    @Override
+    public int addDept(Dept dept) {
+        return deptMapper.addDept(dept);
+    }
+
+    @Override
+    public int updateDept(Dept dept) {
+        return deptMapper.updateDept(dept);
+    }
+
+    @Override
+    public int deleteDept(Long id) {
+        return deptMapper.deleteDept(id);
+    }
+}
