@@ -2,276 +2,425 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>人力资源管理系统（参考vhr2.0）</title>
-    <!-- 引入Vue3 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人力资源管理系统 HRMS</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <!-- 引入ElementPlus -->
     <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
     <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
-    <!-- 引入Axios -->
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body { height: 100%; }
+        html, body, #app { height: 100%; font-family: "Helvetica Neue", Arial, sans-serif; }
+        .login-wrapper {
+            height: 100%; display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #1f3a5f 0%, #2c5282 100%);
+        }
         .login-box {
-            width: 400px;
-            margin: 100px auto;
-            padding: 20px;
-            border: 1px solid #e6e6e6;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            width: 380px; padding: 36px 30px; background: #fff;
+            border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);
         }
-        .main-container {
-            display: flex;
-            height: 100%;
+        .login-box h2 { text-align: center; margin-bottom: 6px; color: #1f3a5f; }
+        .login-box .subtitle { text-align: center; color: #999; font-size: 13px; margin-bottom: 24px; }
+        .login-tip { text-align: center; color: #909399; font-size: 12px; margin-top: 8px; line-height: 1.8; }
+        .main-container { display: flex; height: 100%; }
+        .sidebar { width: 210px; background: #304156; color: #bfcbd9; overflow-y: auto; }
+        .sidebar .logo {
+            height: 56px; line-height: 56px; text-align: center; color: #fff;
+            font-size: 18px; font-weight: bold; background: #2b3648; letter-spacing: 2px;
         }
-        .sidebar {
-            width: 200px;
-            background: #304156;
-            color: #fff;
-            padding: 20px 0;
-        }
-        .sidebar .menu-item {
-            padding: 12px 20px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-        .sidebar .menu-item:hover, .sidebar .menu-item.active {
-            background: #1890ff;
-        }
-        .main-content {
-            flex: 1;
-            padding: 20px;
-            background: #f5f7fa;
-        }
+        .sidebar .menu-item { padding: 14px 24px; cursor: pointer; transition: all .2s; font-size: 14px; }
+        .sidebar .menu-item:hover { background: #263445; color: #fff; }
+        .sidebar .menu-item.active { background: #409eff; color: #fff; }
+        .sidebar .group-title { padding: 10px 24px 4px; font-size: 12px; color: #8492a6; }
+        .content-wrapper { flex: 1; display: flex; flex-direction: column; background: #f0f2f5; overflow: hidden; }
         .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding: 10px 20px;
-            background: #fff;
-            border-radius: 4px;
+            height: 56px; display: flex; justify-content: space-between; align-items: center;
+            padding: 0 24px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.08); flex-shrink: 0;
         }
-        .form-card {
-            background: #fff;
-            padding: 20px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-        }
-        .table-card {
-            background: #fff;
-            padding: 20px;
-            border-radius: 4px;
-        }
+        .header .title { font-size: 18px; color: #303133; }
+        .header .user-info { display: flex; align-items: center; gap: 12px; color: #606266; }
+        .role-tag { font-size: 12px; }
+        .main-content { flex: 1; padding: 20px; overflow-y: auto; }
+        .card { background: #fff; padding: 20px; border-radius: 6px; margin-bottom: 16px; }
+        .card h3 { margin-bottom: 16px; color: #303133; font-size: 16px; }
+        .clock-panel { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+        .clock-time { font-size: 26px; font-weight: bold; color: #409eff; font-variant-numeric: tabular-nums; }
     </style>
 </head>
 <body>
-<div id="app">
+<div id="app" v-cloak>
     <!-- 登录页 -->
-    <div v-if="!isLogin" class="login-box">
-        <h2 style="text-align: center; margin-bottom: 20px;">人力资源管理系统</h2>
-        <el-form :model="loginForm" label-width="80px">
-            <el-form-item label="用户名">
-                <el-input v-model="loginForm.username" placeholder="请输入用户名"></el-input>
-            </el-form-item>
-            <el-form-item label="密码">
-                <el-input v-model="loginForm.password" type="password" placeholder="请输入密码"></el-input>
-            </el-form-item>
-            <el-form-item>
-                <el-button type="primary" @click="handleLogin" style="width: 100%;">登录</el-button>
-            </el-form-item>
-        </el-form>
-        <p style="text-align: center; color: #999;">默认账号：admin / 123456</p>
+    <div v-if="!isLogin" class="login-wrapper">
+        <div class="login-box">
+            <h2>人力资源管理系统</h2>
+            <p class="subtitle">HRMS · 员工 OA 平台</p>
+            <el-form :model="loginForm" @submit.prevent>
+                <el-form-item>
+                    <el-input v-model="loginForm.username" placeholder="用户名" size="large" prefix-icon="User"></el-input>
+                </el-form-item>
+                <el-form-item>
+                    <el-input v-model="loginForm.password" type="password" placeholder="密码" size="large"
+                              prefix-icon="Lock" show-password @keyup.enter="handleLogin"></el-input>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" size="large" @click="handleLogin" style="width:100%;">登 录</el-button>
+                </el-form-item>
+            </el-form>
+            <div class="login-tip">
+                管理员：admin / 123456（全部权限）<br>
+                人事部：hr / 123456（最高管理权限）<br>
+                普通员工：ming / 123456、hong / 123456（OA）
+            </div>
+        </div>
     </div>
 
     <!-- 主页面 -->
     <div v-else class="main-container">
-        <!-- 侧边栏 -->
         <div class="sidebar">
-            <h3 style="text-align: center; margin-bottom: 20px;">HRMS</h3>
-            <div class="menu-item" :class="{active: activeMenu === 'dept'}" @click="activeMenu='dept'">部门管理</div>
-            <div class="menu-item" :class="{active: activeMenu === 'position'}" @click="activeMenu='position'">职位管理</div>
-            <div class="menu-item" :class="{active: activeMenu === 'emp'}" @click="activeMenu='emp'">员工管理</div>
-            <div class="menu-item" :class="{active: activeMenu === 'stat'}" @click="activeMenu='stat'">信息统计</div>
+            <div class="logo">HRMS</div>
+            <template v-for="m in visibleMenus" :key="m.key">
+                <div class="group-title" v-if="m.group">{{ m.group }}</div>
+                <div v-else class="menu-item" :class="{active: activeMenu === m.key}" @click="switchMenu(m.key)">
+                    {{ m.label }}
+                </div>
+            </template>
         </div>
 
-        <!-- 主内容 -->
-        <div class="main-content">
+        <div class="content-wrapper">
             <div class="header">
-                <h3>{{ menuTitle }}</h3>
-                <span>欢迎你，{{ loginUser.username }}</span>
-            </div>
-
-            <!-- 部门管理 -->
-            <div v-show="activeMenu === 'dept'">
-                <div class="form-card">
-                    <el-form :model="deptForm" inline>
-                        <el-form-item label="部门名称">
-                            <el-input v-model="deptForm.deptName" placeholder="请输入部门名称"></el-input>
-                        </el-form-item>
-                        <el-form-item label="负责人">
-                            <el-input v-model="deptForm.manager" placeholder="请输入负责人"></el-input>
-                        </el-form-item>
-                        <el-form-item>
-                            <el-button type="primary" @click="addDept">{{ deptForm.id ? '修改' : '新增' }}</el-button>
-                            <el-button @click="resetDeptForm">重置</el-button>
-                        </el-form-item>
-                    </el-form>
-                </div>
-                <div class="table-card">
-                    <el-table :data="deptList" border>
-                        <el-table-column prop="id" label="部门ID" width="100"></el-table-column>
-                        <el-table-column prop="deptName" label="部门名称"></el-table-column>
-                        <el-table-column prop="manager" label="负责人"></el-table-column>
-                        <el-table-column label="操作" width="150">
-                            <template #default="scope">
-                                <el-button size="small" @click="editDept(scope.row)">编辑</el-button>
-                                <el-button size="small" type="danger" @click="deleteDept(scope.row.id)">删除</el-button>
-                            </template>
-                        </el-table-column>
-                    </el-table>
+                <span class="title">{{ menuTitle }}</span>
+                <div class="user-info">
+                    <span>{{ loginUser.realName || loginUser.username }}</span>
+                    <el-tag class="role-tag" :type="roleTagType" size="small">{{ roleLabel }}</el-tag>
+                    <el-button size="small" @click="logout">退出登录</el-button>
                 </div>
             </div>
 
-            <!-- 职位管理 -->
-            <div v-show="activeMenu === 'position'">
-                <div class="form-card">
-                    <el-form :model="positionForm" inline>
-                        <el-form-item label="职位名称">
-                            <el-input v-model="positionForm.posName" placeholder="请输入职位名称"></el-input>
-                        </el-form-item>
-                        <el-form-item label="所属部门">
-                            <el-select v-model="positionForm.dept.id" placeholder="请选择部门">
-                                <el-option v-for="dept in deptList" :key="dept.id" :label="dept.deptName" :value="dept.id"></el-option>
-                            </el-select>
-                        </el-form-item>
-                        <el-form-item label="职位描述">
-                            <el-input v-model="positionForm.posDesc" placeholder="请输入职位描述"></el-input>
-                        </el-form-item>
-                        <el-form-item>
-                            <el-button type="primary" @click="addPosition">{{ positionForm.id ? '修改' : '新增' }}</el-button>
-                            <el-button @click="resetPositionForm">重置</el-button>
-                        </el-form-item>
-                    </el-form>
+            <div class="main-content">
+                <!-- 部门管理 -->
+                <div v-show="activeMenu === 'dept'">
+                    <div class="card" v-if="canManage">
+                        <el-form :model="deptForm" inline>
+                            <el-form-item label="部门名称">
+                                <el-input v-model="deptForm.deptName" placeholder="部门名称"></el-input>
+                            </el-form-item>
+                            <el-form-item label="负责人">
+                                <el-input v-model="deptForm.manager" placeholder="负责人"></el-input>
+                            </el-form-item>
+                            <el-form-item>
+                                <el-button type="primary" @click="saveDept">{{ deptForm.id ? '修改' : '新增' }}</el-button>
+                                <el-button @click="resetDeptForm">重置</el-button>
+                            </el-form-item>
+                        </el-form>
+                    </div>
+                    <div class="card">
+                        <el-table :data="deptList" border stripe>
+                            <el-table-column prop="id" label="ID" width="80"></el-table-column>
+                            <el-table-column prop="deptName" label="部门名称"></el-table-column>
+                            <el-table-column prop="manager" label="负责人"></el-table-column>
+                            <el-table-column label="操作" width="160" v-if="canManage">
+                                <template #default="scope">
+                                    <el-button size="small" @click="editDept(scope.row)">编辑</el-button>
+                                    <el-button size="small" type="danger" @click="deleteDept(scope.row.id)">删除</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </div>
                 </div>
-                <div class="table-card">
-                    <el-table :data="positionList" border>
-                        <el-table-column prop="id" label="职位ID" width="100"></el-table-column>
-                        <el-table-column prop="posName" label="职位名称"></el-table-column>
-                        <el-table-column prop="dept.deptName" label="所属部门"></el-table-column>
-                        <el-table-column prop="posDesc" label="职位描述"></el-table-column>
-                        <el-table-column label="操作" width="150">
-                            <template #default="scope">
-                                <el-button size="small" @click="editPosition(scope.row)">编辑</el-button>
-                                <el-button size="small" type="danger" @click="deletePosition(scope.row.id)">删除</el-button>
-                            </template>
-                        </el-table-column>
-                    </el-table>
-                </div>
-            </div>
 
-            <!-- 员工管理 -->
-            <div v-show="activeMenu === 'emp'">
-                <div class="form-card">
-                    <el-form :model="empForm" inline>
-                        <el-form-item label="工号">
-                            <el-input v-model="empForm.empId" placeholder="请输入工号"></el-input>
-                        </el-form-item>
-                        <el-form-item label="姓名">
-                            <el-input v-model="empForm.empName" placeholder="请输入姓名"></el-input>
-                        </el-form-item>
-                        <el-form-item label="所属部门">
-                            <el-select v-model="empForm.dept.id" placeholder="请选择部门" @change="loadPositionByDept">
-                                <el-option v-for="dept in deptList" :key="dept.id" :label="dept.deptName" :value="dept.id"></el-option>
-                            </el-select>
-                        </el-form-item>
-                        <el-form-item label="所属职位">
-                            <el-select v-model="empForm.position.id" placeholder="请选择职位">
-                                <el-option v-for="pos in filterPositionList" :key="pos.id" :label="pos.posName" :value="pos.id"></el-option>
-                            </el-select>
-                        </el-form-item>
-                        <el-form-item label="入职日期">
-                            <el-date-picker v-model="empForm.entryDate" type="date" placeholder="请选择入职日期"></el-date-picker>
-                        </el-form-item>
-                        <el-form-item>
-                            <el-button type="primary" @click="addEmp">{{ empForm.id ? '修改' : '新增' }}</el-button>
-                            <el-button @click="resetEmpForm">重置</el-button>
-                        </el-form-item>
-                    </el-form>
+                <!-- 职位管理 -->
+                <div v-show="activeMenu === 'position'">
+                    <div class="card" v-if="canManage">
+                        <el-form :model="positionForm" inline>
+                            <el-form-item label="职位名称">
+                                <el-input v-model="positionForm.posName" placeholder="职位名称"></el-input>
+                            </el-form-item>
+                            <el-form-item label="所属部门">
+                                <el-select v-model="positionForm.dept.id" placeholder="选择部门" style="width:150px;">
+                                    <el-option v-for="d in deptList" :key="d.id" :label="d.deptName" :value="d.id"></el-option>
+                                </el-select>
+                            </el-form-item>
+                            <el-form-item label="职位描述">
+                                <el-input v-model="positionForm.posDesc" placeholder="职位描述"></el-input>
+                            </el-form-item>
+                            <el-form-item>
+                                <el-button type="primary" @click="savePosition">{{ positionForm.id ? '修改' : '新增' }}</el-button>
+                                <el-button @click="resetPositionForm">重置</el-button>
+                            </el-form-item>
+                        </el-form>
+                    </div>
+                    <div class="card">
+                        <el-table :data="positionList" border stripe>
+                            <el-table-column prop="id" label="ID" width="80"></el-table-column>
+                            <el-table-column prop="posName" label="职位名称"></el-table-column>
+                            <el-table-column prop="dept.deptName" label="所属部门"></el-table-column>
+                            <el-table-column prop="posDesc" label="职位描述"></el-table-column>
+                            <el-table-column label="操作" width="160" v-if="canManage">
+                                <template #default="scope">
+                                    <el-button size="small" @click="editPosition(scope.row)">编辑</el-button>
+                                    <el-button size="small" type="danger" @click="deletePosition(scope.row.id)">删除</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </div>
                 </div>
-                <div class="table-card">
-                    <el-table :data="empList" border>
-                        <el-table-column prop="id" label="员工ID" width="100"></el-table-column>
-                        <el-table-column prop="empId" label="工号"></el-table-column>
-                        <el-table-column prop="empName" label="姓名"></el-table-column>
-                        <el-table-column prop="dept.deptName" label="所属部门"></el-table-column>
-                        <el-table-column prop="position.posName" label="所属职位"></el-table-column>
-                        <el-table-column prop="entryDate" label="入职日期"></el-table-column>
-                        <el-table-column label="操作" width="150">
-                            <template #default="scope">
-                                <el-button size="small" @click="editEmp(scope.row)">编辑</el-button>
-                                <el-button size="small" type="danger" @click="deleteEmp(scope.row.id)">删除</el-button>
-                            </template>
-                        </el-table-column>
-                    </el-table>
-                </div>
-            </div>
 
-            <!-- 信息统计 -->
-            <div v-show="activeMenu === 'stat'">
-                <div class="table-card">
-                    <h3 style="margin-bottom: 20px;">各部门员工数量统计</h3>
-                    <el-table :data="statList" border>
-                        <el-table-column prop="dept_name" label="部门名称"></el-table-column>
-                        <el-table-column prop="emp_count" label="员工数量"></el-table-column>
-                    </el-table>
+                <!-- 员工管理 -->
+                <div v-show="activeMenu === 'emp'">
+                    <div class="card" v-if="canManage">
+                        <el-form :model="empForm" inline>
+                            <el-form-item label="工号">
+                                <el-input v-model="empForm.empId" placeholder="工号" style="width:120px;"></el-input>
+                            </el-form-item>
+                            <el-form-item label="姓名">
+                                <el-input v-model="empForm.empName" placeholder="姓名" style="width:120px;"></el-input>
+                            </el-form-item>
+                            <el-form-item label="部门">
+                                <el-select v-model="empForm.dept.id" placeholder="部门" style="width:130px;" @change="onEmpDeptChange">
+                                    <el-option v-for="d in deptList" :key="d.id" :label="d.deptName" :value="d.id"></el-option>
+                                </el-select>
+                            </el-form-item>
+                            <el-form-item label="职位">
+                                <el-select v-model="empForm.position.id" placeholder="职位" style="width:130px;">
+                                    <el-option v-for="p in filterPositionList" :key="p.id" :label="p.posName" :value="p.id"></el-option>
+                                </el-select>
+                            </el-form-item>
+                            <el-form-item label="底薪">
+                                <el-input v-model="empForm.baseSalary" placeholder="底薪" style="width:110px;"></el-input>
+                            </el-form-item>
+                            <el-form-item label="入职日期">
+                                <el-date-picker v-model="empForm.entryDate" type="date" value-format="YYYY-MM-DD"
+                                                placeholder="入职日期" style="width:150px;"></el-date-picker>
+                            </el-form-item>
+                            <el-form-item>
+                                <el-button type="primary" @click="saveEmp">{{ empForm.id ? '修改' : '新增' }}</el-button>
+                                <el-button @click="resetEmpForm">重置</el-button>
+                            </el-form-item>
+                        </el-form>
+                    </div>
+                    <div class="card">
+                        <el-table :data="empList" border stripe>
+                            <el-table-column prop="empId" label="工号" width="100"></el-table-column>
+                            <el-table-column prop="empName" label="姓名" width="100"></el-table-column>
+                            <el-table-column prop="dept.deptName" label="部门"></el-table-column>
+                            <el-table-column prop="position.posName" label="职位"></el-table-column>
+                            <el-table-column prop="baseSalary" label="底薪"></el-table-column>
+                            <el-table-column prop="entryDate" label="入职日期" :formatter="dateFmt"></el-table-column>
+                            <el-table-column label="操作" width="160" v-if="canManage">
+                                <template #default="scope">
+                                    <el-button size="small" @click="editEmp(scope.row)">编辑</el-button>
+                                    <el-button size="small" type="danger" @click="deleteEmp(scope.row.id)">删除</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </div>
                 </div>
-            </div>
-        </div>
-    </div>
+                <!-- 我的打卡 -->
+                <div v-show="activeMenu === 'attendance'">
+                    <div class="card" v-if="loginUser.employeeId">
+                        <h3>每日打卡</h3>
+                        <div class="clock-panel">
+                            <span class="clock-time">{{ nowTime }}</span>
+                            <el-button type="primary" @click="clockIn" :loading="clockLoading">上班打卡</el-button>
+                            <el-button type="success" @click="clockOut" :loading="clockLoading">下班打卡</el-button>
+                            <span style="color:#909399;">迟到判定：上班打卡晚于 09:00</span>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>打卡记录 <span style="font-size:12px;color:#909399;">（{{ canManage ? '全体员工' : '我的记录' }}）</span></h3>
+                        <el-table :data="attendanceList" border stripe>
+                            <el-table-column prop="empNo" label="工号" width="100"></el-table-column>
+                            <el-table-column prop="empName" label="姓名" width="100"></el-table-column>
+                            <el-table-column prop="clockDate" label="日期" :formatter="dateFmt"></el-table-column>
+                            <el-table-column prop="clockIn" label="上班打卡" :formatter="timeFmt"></el-table-column>
+                            <el-table-column prop="clockOut" label="下班打卡" :formatter="timeFmt"></el-table-column>
+                            <el-table-column prop="status" label="状态" width="100">
+                                <template #default="scope">
+                                    <el-tag :type="scope.row.status === '正常' ? 'success' : 'warning'" size="small">
+                                        {{ scope.row.status }}
+                                    </el-tag>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </div>
+                </div>
+
+                <!-- 请假管理 -->
+                <div v-show="activeMenu === 'leave'">
+                    <div class="card" v-if="loginUser.employeeId">
+                        <h3>提交请假申请</h3>
+                        <el-form :model="leaveForm" inline>
+                            <el-form-item label="请假日期">
+                                <el-date-picker v-model="leaveForm.range" type="daterange" range-separator="至"
+                                                start-placeholder="开始日期" end-placeholder="结束日期"
+                                                value-format="YYYY-MM-DD"></el-date-picker>
+                            </el-form-item>
+                            <el-form-item label="事由">
+                                <el-input v-model="leaveForm.reason" placeholder="请假事由" style="width:220px;"></el-input>
+                            </el-form-item>
+                            <el-form-item>
+                                <el-button type="primary" @click="applyLeave">提交申请</el-button>
+                            </el-form-item>
+                        </el-form>
+                    </div>
+                    <div class="card">
+                        <h3>请假记录 <span style="font-size:12px;color:#909399;">（{{ canManage ? '全体 · 可批假' : '我的申请' }}）</span></h3>
+                        <el-table :data="leaveList" border stripe>
+                            <el-table-column prop="empNo" label="工号" width="100"></el-table-column>
+                            <el-table-column prop="empName" label="姓名" width="90"></el-table-column>
+                            <el-table-column prop="startDate" label="开始" :formatter="dateFmt"></el-table-column>
+                            <el-table-column prop="endDate" label="结束" :formatter="dateFmt"></el-table-column>
+                            <el-table-column prop="days" label="天数" width="70"></el-table-column>
+                            <el-table-column prop="reason" label="事由"></el-table-column>
+                            <el-table-column prop="status" label="状态" width="90">
+                                <template #default="scope">
+                                    <el-tag :type="leaveTagType(scope.row.status)" size="small">{{ scope.row.status }}</el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="approver" label="审批人" width="90"></el-table-column>
+                            <el-table-column label="操作" width="200" v-if="canManage">
+                                <template #default="scope">
+                                    <template v-if="scope.row.status === '待审批'">
+                                        <el-button size="small" type="success" @click="approveLeave(scope.row.id, true)">批准</el-button>
+                                        <el-button size="small" type="warning" @click="approveLeave(scope.row.id, false)">驳回</el-button>
+                                    </template>
+                                    <el-button size="small" type="danger" @click="deleteLeave(scope.row.id)">删除</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </div>
+                </div>
+
+                <!-- 工资管理 -->
+                <div v-show="activeMenu === 'salary'">
+                    <div class="card" v-if="canManage">
+                        <h3>月工资计算</h3>
+                        <el-form inline>
+                            <el-form-item label="工资月份">
+                                <el-date-picker v-model="salaryMonth" type="month" value-format="YYYY-MM"
+                                                placeholder="选择月份"></el-date-picker>
+                            </el-form-item>
+                            <el-form-item label="绩效(元)">
+                                <el-input v-model="salaryPerformance" placeholder="统一绩效，可空" style="width:130px;"></el-input>
+                            </el-form-item>
+                            <el-form-item>
+                                <el-button type="primary" @click="calculateAllSalary">一键计算全员工资</el-button>
+                            </el-form-item>
+                        </el-form>
+                        <div style="color:#909399;font-size:13px;">
+                            规则：实发 = 底薪 + 满勤奖(无缺勤无请假 +200) + 绩效 - 缺勤扣款；缺勤扣款 = 底薪/应出勤工作日 × 缺勤天数。
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>工资明细</h3>
+                        <el-table :data="salaryList" border stripe size="small">
+                            <el-table-column prop="empNo" label="工号" width="90"></el-table-column>
+                            <el-table-column prop="empName" label="姓名" width="80"></el-table-column>
+                            <el-table-column prop="salaryMonth" label="月份" width="90"></el-table-column>
+                            <el-table-column prop="baseSalary" label="底薪"></el-table-column>
+                            <el-table-column prop="requiredDays" label="应出勤" width="80"></el-table-column>
+                            <el-table-column prop="attendDays" label="实出勤" width="80"></el-table-column>
+                            <el-table-column prop="leaveDays" label="请假" width="70"></el-table-column>
+                            <el-table-column prop="absentDays" label="缺勤" width="70"></el-table-column>
+                            <el-table-column prop="fullAttendanceBonus" label="满勤奖" width="80"></el-table-column>
+                            <el-table-column prop="performance" label="绩效" width="80"></el-table-column>
+                            <el-table-column prop="deduction" label="扣款" width="80"></el-table-column>
+                            <el-table-column prop="totalSalary" label="实发工资" width="100">
+                                <template #default="scope">
+                                    <strong style="color:#e6534d;">{{ scope.row.totalSalary }}</strong>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </div>
+                </div>
+
+                <!-- 信息统计 -->
+                <div v-show="activeMenu === 'stat'">
+                    <div class="card">
+                        <h3>各部门员工数量统计</h3>
+                        <el-table :data="statList" border stripe>
+                            <el-table-column prop="dept_name" label="部门名称"></el-table-column>
+                            <el-table-column prop="emp_count" label="员工数量"></el-table-column>
+                        </el-table>
+                    </div>
+                </div>
 </div>
-
+<style>[v-cloak]{display:none;}</style>
 <script>
-    const { createApp, ref, reactive, computed, onMounted } = Vue;
-    const { ElMessage } = ElementPlus;
+    const {createApp, ref, reactive, computed, onMounted, onUnmounted} = Vue;
+    const {ElMessage, ElMessageBox} = ElementPlus;
+
+    // axios 统一配置：相对路径 + 携带 session cookie
+    axios.defaults.baseURL = '/api';
+    axios.defaults.withCredentials = true;
 
     createApp({
         setup() {
-            // 登录相关
+            // ---------- 登录状态 ----------
             const isLogin = ref(false);
             const loginUser = ref({});
-            const loginForm = reactive({ username: '', password: '' });
+            const loginForm = reactive({username: '', password: ''});
 
-            // 菜单相关
-            const activeMenu = ref('dept');
-            const menuTitle = computed(() => {
-                const titles = {
-                    dept: '部门管理',
-                    position: '职位管理',
-                    emp: '员工管理',
-                    stat: '信息统计'
-                };
-                return titles[activeMenu.value];
-            });
+            const canManage = computed(() =>
+                ['ADMIN', 'HR'].includes(loginUser.value.role));
+            const roleLabel = computed(() => ({
+                ADMIN: '超级管理员', HR: '人事部', EMPLOYEE: '普通员工'
+            }[loginUser.value.role] || '用户'));
+            const roleTagType = computed(() => ({
+                ADMIN: 'danger', HR: 'warning', EMPLOYEE: 'info'
+            }[loginUser.value.role] || 'info'));
 
-            // 部门相关
+            // ---------- 菜单 ----------
+            const activeMenu = ref('attendance');
+            const allMenus = [
+                {group: '基础管理', manageOnly: true},
+                {key: 'dept', label: '部门管理', manageOnly: true},
+                {key: 'position', label: '职位管理', manageOnly: true},
+                {key: 'emp', label: '员工管理', manageOnly: true},
+                {group: '员工 OA'},
+                {key: 'attendance', label: '我的打卡'},
+                {key: 'leave', label: '请假/批假'},
+                {key: 'salary', label: '工资管理'},
+                {group: '统计报表'},
+                {key: 'stat', label: '信息统计', manageOnly: true},
+            ];
+            const visibleMenus = computed(() =>
+                allMenus.filter(m => !m.manageOnly || canManage.value));
+            const menuTitles = {
+                dept: '部门管理', position: '职位管理', emp: '员工管理',
+                attendance: '我的打卡', leave: '请假/批假', salary: '工资管理', stat: '信息统计'
+            };
+            const menuTitle = computed(() => menuTitles[activeMenu.value] || 'HRMS');
+
+            // ---------- 各模块数据 ----------
             const deptList = ref([]);
-            const deptForm = reactive({ id: '', deptName: '', manager: '' });
-
-            // 职位相关
+            const deptForm = reactive({id: '', deptName: '', manager: ''});
             const positionList = ref([]);
-            const positionForm = reactive({ id: '', posName: '', posDesc: '', dept: { id: '' } });
-            const filterPositionList = ref([]); // 按部门筛选的职位
-
-            // 员工相关
+            const positionForm = reactive({id: '', posName: '', posDesc: '', dept: {id: ''}});
+            const filterPositionList = ref([]);
             const empList = ref([]);
-            const empForm = reactive({ id: '', empId: '', empName: '', dept: { id: '' }, position: { id: '' }, entryDate: '' });
-
-            // 统计相关
+            const empForm = reactive({id: '', empId: '', empName: '', baseSalary: '', dept: {id: ''}, position: {id: ''}, entryDate: ''});
+            const attendanceList = ref([]);
+            const leaveList = ref([]);
+            const leaveForm = reactive({range: [], reason: ''});
+            const salaryList = ref([]);
+            const salaryMonth = ref('');
+            const salaryPerformance = ref('');
             const statList = ref([]);
 
-            // 登录
+            // 实时时钟
+            const nowTime = ref('');
+            const clockLoading = ref(false);
+            let clockTimer = null;
+            const updateClock = () => {
+                nowTime.value = new Date().toLocaleString('zh-CN', {hour12: false});
+            };
+
+            // ---------- 格式化工具 ----------
+            const dateFmt = (row, col, val) => val ? String(val).substring(0, 10) : '';
+            const timeFmt = (row, col, val) => val ? String(val).replace('T', ' ').substring(11, 19) : '';
+            const leaveTagType = (s) => ({'待审批': 'info', '已批准': 'success', '已驳回': 'danger'}[s] || 'info');
+            // ---------- 登录/登出 ----------
             const handleLogin = async () => {
                 if (!loginForm.username || !loginForm.password) {
                     ElMessage.warning('请输入用户名和密码');
@@ -281,12 +430,10 @@
                     const res = await axios.post('/login', loginForm);
                     if (res.data.code === 200) {
                         ElMessage.success('登录成功');
+                        loginUser.value = res.data.data;
                         isLogin.value = true;
-                        // 加载数据
-                        loadDeptList();
-                        loadPositionList();
-                        loadEmpList();
-                        loadStatList();
+                        activeMenu.value = canManage.value ? 'emp' : 'attendance';
+                        loadAll();
                     } else {
                         ElMessage.error(res.data.msg);
                     }
@@ -295,177 +442,236 @@
                 }
             };
 
-            // 加载部门列表
-            const loadDeptList = async () => {
-                const res = await axios.get('/dept/list');
-                deptList.value = res.data;
+            const logout = async () => {
+                await axios.post('/logout');
+                isLogin.value = false;
+                loginUser.value = {};
+                loginForm.username = '';
+                loginForm.password = '';
             };
 
-            // 新增/修改部门
-            const addDept = async () => {
-                if (!deptForm.deptName) {
-                    ElMessage.warning('请输入部门名称');
-                    return;
-                }
-                if (deptForm.id) {
-                    await axios.put('/dept/update', deptForm);
-                    ElMessage.success('修改成功');
-                } else {
-                    await axios.post('/dept/add', deptForm);
-                    ElMessage.success('新增成功');
-                }
+            // 加载当前角色可见的全部数据
+            const loadAll = () => {
+                loadDeptList();
+                loadPositionList();
+                loadEmpList();
+                loadAttendanceList();
+                loadLeaveList();
+                loadSalaryList();
+                if (canManage.value) loadStatList();
+            };
+
+            const switchMenu = (key) => { activeMenu.value = key; };
+
+            // ---------- 部门 ----------
+            const loadDeptList = async () => {
+                const res = await axios.get('/dept/list');
+                deptList.value = res.data.data || [];
+            };
+            const saveDept = async () => {
+                if (!deptForm.deptName) { ElMessage.warning('请输入部门名称'); return; }
+                const url = deptForm.id ? '/dept/update' : '/dept/add';
+                const req = deptForm.id ? axios.put(url, deptForm) : axios.post(url, deptForm);
+                const res = await req;
+                ElMessage.success(res.data.msg);
                 resetDeptForm();
                 loadDeptList();
                 loadStatList();
             };
-
-            const editDept = (row) => {
-                Object.assign(deptForm, row);
-            };
-
+            const editDept = (row) => Object.assign(deptForm, row);
             const deleteDept = async (id) => {
-                await ElMessageBox.confirm('确定删除该部门吗？');
-                await axios.delete(`/dept/delete/${id}`);
-                ElMessage.success('删除成功');
-                loadDeptList();
-                loadEmpList();
-                loadStatList();
+                await ElMessageBox.confirm('确定删除该部门吗？', '提示', {type: 'warning'});
+                const res = await axios.delete('/dept/delete/' + id);
+                ElMessage.success(res.data.msg);
+                loadDeptList(); loadStatList();
             };
-
-            const resetDeptForm = () => {
-                deptForm.id = '';
-                deptForm.deptName = '';
-                deptForm.manager = '';
-            };
-
-            // 加载职位列表
+            const resetDeptForm = () => Object.assign(deptForm, {id: '', deptName: '', manager: ''});
+            // ---------- 职位 ----------
             const loadPositionList = async () => {
                 const res = await axios.get('/position/list');
-                positionList.value = res.data;
+                positionList.value = res.data.data || [];
+                filterPositionList.value = positionList.value;
             };
-
-            // 新增/修改职位
-            const addPosition = async () => {
-                if (!positionForm.posName) {
-                    ElMessage.warning('请输入职位名称');
-                    return;
-                }
-                if (positionForm.id) {
-                    await axios.put('/position/update', positionForm);
-                    ElMessage.success('修改成功');
-                } else {
-                    await axios.post('/position/add', positionForm);
-                    ElMessage.success('新增成功');
-                }
+            const savePosition = async () => {
+                if (!positionForm.posName) { ElMessage.warning('请输入职位名称'); return; }
+                const url = positionForm.id ? '/position/update' : '/position/add';
+                const req = positionForm.id ? axios.put(url, positionForm) : axios.post(url, positionForm);
+                const res = await req;
+                ElMessage.success(res.data.msg);
                 resetPositionForm();
                 loadPositionList();
             };
-
             const editPosition = (row) => {
-                Object.assign(positionForm, row);
+                positionForm.id = row.id;
+                positionForm.posName = row.posName;
+                positionForm.posDesc = row.posDesc;
+                positionForm.dept = {id: row.dept ? row.dept.id : ''};
             };
-
             const deletePosition = async (id) => {
-                await ElMessageBox.confirm('确定删除该职位吗？');
-                await axios.delete(`/position/delete/${id}`);
-                ElMessage.success('删除成功');
+                await ElMessageBox.confirm('确定删除该职位吗？', '提示', {type: 'warning'});
+                const res = await axios.delete('/position/delete/' + id);
+                ElMessage.success(res.data.msg);
                 loadPositionList();
-                loadEmpList();
             };
+            const resetPositionForm = () => Object.assign(positionForm, {id: '', posName: '', posDesc: '', dept: {id: ''}});
 
-            const resetPositionForm = () => {
-                positionForm.id = '';
-                positionForm.posName = '';
-                positionForm.posDesc = '';
-                positionForm.dept.id = '';
-            };
-
-            // 按部门筛选职位
-            const loadPositionByDept = () => {
-                if (empForm.dept.id) {
-                    filterPositionList.value = positionList.value.filter(p => p.dept.id === empForm.dept.id);
-                } else {
-                    filterPositionList.value = positionList.value;
-                }
-            };
-
-            // 加载员工列表
+            // ---------- 员工 ----------
             const loadEmpList = async () => {
                 const res = await axios.get('/employee/list');
-                empList.value = res.data;
+                empList.value = res.data.data || [];
             };
-
-            // 新增/修改员工
-            const addEmp = async () => {
-                if (!empForm.empId || !empForm.empName) {
-                    ElMessage.warning('请输入工号和姓名');
-                    return;
-                }
-                if (empForm.id) {
-                    await axios.put('/employee/update', empForm);
-                    ElMessage.success('修改成功');
-                } else {
-                    await axios.post('/employee/add', empForm);
-                    ElMessage.success('新增成功');
-                }
-                resetEmpForm();
-                loadEmpList();
-                loadStatList();
-            };
-
-            const editEmp = (row) => {
-                Object.assign(empForm, row);
-                loadPositionByDept();
-            };
-
-            const deleteEmp = async (id) => {
-                await ElMessageBox.confirm('确定删除该员工吗？');
-                await axios.delete(`/employee/delete/${id}`);
-                ElMessage.success('删除成功');
-                loadEmpList();
-                loadStatList();
-            };
-
-            const resetEmpForm = () => {
-                empForm.id = '';
-                empForm.empId = '';
-                empForm.empName = '';
-                empForm.dept.id = '';
+            const onEmpDeptChange = () => {
                 empForm.position.id = '';
-                empForm.entryDate = '';
+                filterPositionList.value = empForm.dept.id
+                    ? positionList.value.filter(p => p.dept && p.dept.id === empForm.dept.id)
+                    : positionList.value;
+            };
+            const saveEmp = async () => {
+                if (!empForm.empId || !empForm.empName) { ElMessage.warning('请输入工号和姓名'); return; }
+                const url = empForm.id ? '/employee/update' : '/employee/add';
+                const req = empForm.id ? axios.put(url, empForm) : axios.post(url, empForm);
+                const res = await req;
+                ElMessage.success(res.data.msg);
+                resetEmpForm();
+                loadEmpList(); loadStatList();
+            };
+            const editEmp = (row) => {
+                empForm.id = row.id;
+                empForm.empId = row.empId;
+                empForm.empName = row.empName;
+                empForm.baseSalary = row.baseSalary;
+                empForm.entryDate = row.entryDate ? String(row.entryDate).substring(0, 10) : '';
+                empForm.dept = {id: row.dept ? row.dept.id : ''};
+                empForm.position = {id: row.position ? row.position.id : ''};
+                onEmpDeptChange();
+                empForm.position = {id: row.position ? row.position.id : ''};
+            };
+            const deleteEmp = async (id) => {
+                await ElMessageBox.confirm('确定删除该员工吗？', '提示', {type: 'warning'});
+                const res = await axios.delete('/employee/delete/' + id);
+                ElMessage.success(res.data.msg);
+                loadEmpList(); loadStatList();
+            };
+            const resetEmpForm = () => {
+                Object.assign(empForm, {id: '', empId: '', empName: '', baseSalary: '', dept: {id: ''}, position: {id: ''}, entryDate: ''});
                 filterPositionList.value = positionList.value;
             };
-
-            // 加载统计数据
-            const loadStatList = async () => {
-                const res = await axios.get('/employee/countByDept');
-                statList.value = res.data;
+            // ---------- 打卡 ----------
+            const loadAttendanceList = async () => {
+                const res = await axios.get('/attendance/list');
+                attendanceList.value = res.data.data || [];
+            };
+            const clockIn = async () => {
+                if (clockLoading.value) return;
+                clockLoading.value = true;
+                try {
+                    const res = await axios.post('/attendance/clockIn');
+                    if (res.data.code === 200) ElMessage.success(res.data.data || res.data.msg);
+                    else ElMessage.error(res.data.msg);
+                    loadAttendanceList();
+                } catch (err) {
+                    ElMessage.error('打卡失败：' + (err.response?.data?.msg || err.message));
+                } finally {
+                    clockLoading.value = false;
+                }
+            };
+            const clockOut = async () => {
+                if (clockLoading.value) return;
+                clockLoading.value = true;
+                try {
+                    const res = await axios.post('/attendance/clockOut');
+                    if (res.data.code === 200) ElMessage.success(res.data.data || res.data.msg);
+                    else ElMessage.error(res.data.msg);
+                    loadAttendanceList();
+                } catch (err) {
+                    ElMessage.error('打卡失败：' + (err.response?.data?.msg || err.message));
+                } finally {
+                    clockLoading.value = false;
+                }
             };
 
-            // 初始化检查登录
+            // ---------- 请假 / 批假 ----------
+            const loadLeaveList = async () => {
+                const res = await axios.get('/leave/list');
+                leaveList.value = res.data.data || [];
+            };
+            const applyLeave = async () => {
+                if (!leaveForm.range || leaveForm.range.length !== 2) {
+                    ElMessage.warning('请选择请假日期'); return;
+                }
+                const res = await axios.post('/leave/apply', {
+                    startDate: leaveForm.range[0],
+                    endDate: leaveForm.range[1],
+                    reason: leaveForm.reason
+                });
+                ElMessage.success(res.data.msg);
+                leaveForm.range = []; leaveForm.reason = '';
+                loadLeaveList();
+            };
+            const approveLeave = async (id, approved) => {
+                const res = await axios.post('/leave/approve/' + id + '?approved=' + approved);
+                if (res.data.code === 200) ElMessage.success(res.data.msg);
+                else ElMessage.error(res.data.msg);
+                loadLeaveList();
+            };
+            const deleteLeave = async (id) => {
+                await ElMessageBox.confirm('确定删除该请假记录吗？', '提示', {type: 'warning'});
+                const res = await axios.delete('/leave/delete/' + id);
+                ElMessage.success(res.data.msg);
+                loadLeaveList();
+            };
+
+            // ---------- 工资 ----------
+            const loadSalaryList = async () => {
+                const res = await axios.get('/salary/list');
+                salaryList.value = res.data.data || [];
+            };
+            const calculateAllSalary = async () => {
+                if (!salaryMonth.value) { ElMessage.warning('请选择工资月份'); return; }
+                let url = '/salary/calculateAll?month=' + salaryMonth.value;
+                if (salaryPerformance.value !== '') url += '&performance=' + salaryPerformance.value;
+                const res = await axios.post(url);
+                ElMessage.success(res.data.msg);
+                loadSalaryList();
+            };
+
+            // ---------- 统计 ----------
+            const loadStatList = async () => {
+                if (!canManage.value) return;
+                const res = await axios.get('/employee/countByDept');
+                statList.value = res.data.data || [];
+            };
+
+            // ---------- 初始化 ----------
             onMounted(async () => {
+                updateClock();
+                clockTimer = setInterval(updateClock, 1000);
+                // 预填工资月份为当前月份
+                const now = new Date();
+                salaryMonth.value = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
                 try {
                     const res = await axios.get('/login/check');
                     if (res.data.code === 200) {
+                        loginUser.value = res.data.data;
                         isLogin.value = true;
-                        loginUser.value = res.data.user;
-                        loadDeptList();
-                        loadPositionList();
-                        loadEmpList();
-                        loadStatList();
+                        activeMenu.value = canManage.value ? 'emp' : 'attendance';
+                        loadAll();
                     }
-                } catch (err) {
-                    // 未登录，不处理
-                }
+                } catch (e) { /* 未登录 */ }
             });
+            onUnmounted(() => clockTimer && clearInterval(clockTimer));
 
             return {
-                isLogin, loginUser, loginForm, handleLogin,
-                activeMenu, menuTitle,
-                deptList, deptForm, addDept, editDept, deleteDept, resetDeptForm,
-                positionList, positionForm, addPosition, editPosition, deletePosition, resetPositionForm, filterPositionList, loadPositionByDept,
-                empList, empForm, addEmp, editEmp, deleteEmp, resetEmpForm,
-                statList
+                isLogin, loginUser, loginForm, handleLogin, logout,
+                canManage, roleLabel, roleTagType,
+                activeMenu, visibleMenus, menuTitle, switchMenu,
+                deptList, deptForm, saveDept, editDept, deleteDept, resetDeptForm,
+                positionList, positionForm, savePosition, editPosition, deletePosition, resetPositionForm, filterPositionList,
+                empList, empForm, saveEmp, editEmp, deleteEmp, resetEmpForm, onEmpDeptChange,
+                attendanceList, clockIn, clockOut, nowTime, clockLoading,
+                leaveList, leaveForm, applyLeave, approveLeave, deleteLeave, leaveTagType,
+                salaryList, salaryMonth, salaryPerformance, calculateAllSalary,
+                statList, dateFmt, timeFmt
             };
         }
     }).use(ElementPlus).mount('#app');

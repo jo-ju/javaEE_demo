@@ -1,35 +1,41 @@
 package org.example.hrms.controller;
 
 import jakarta.annotation.Resource;
+import org.example.hrms.common.Result;
+import org.example.hrms.config.RequireManage;
 import org.example.hrms.entity.Dept;
 import org.example.hrms.service.DeptService;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
-@RequestMapping("/dept")
+@RequestMapping("/api/dept")
 public class DeptController {
     @Resource
     private DeptService deptService;
 
     @GetMapping("/list")
-    public List<Dept> list() {
-        return deptService.findAll();
+    public Result list() {
+        return Result.ok(deptService.findAll());
     }
 
+    @RequireManage
     @PostMapping("/add")
-    public int add(@RequestBody Dept dept) {
-        return deptService.addDept(dept);
+    public Result add(@RequestBody Dept dept) {
+        deptService.addDept(dept);
+        return Result.ok("新增成功", null);
     }
 
+    @RequireManage
     @PutMapping("/update")
-    public int update(@RequestBody Dept dept) {
-        return deptService.updateDept(dept);
+    public Result update(@RequestBody Dept dept) {
+        deptService.updateDept(dept);
+        return Result.ok("修改成功", null);
     }
 
+    @RequireManage
     @DeleteMapping("/delete/{id}")
-    public int delete(@PathVariable Long id) {
-        return deptService.deleteDept(id);
+    public Result delete(@PathVariable Long id) {
+        deptService.deleteDept(id);
+        return Result.ok("删除成功", null);
     }
 }
